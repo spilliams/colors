@@ -126,7 +126,7 @@ func contrastSet(table *tablewriter.Table, colors []*color.Color) error {
 }
 
 func contrast(fg, bg *color.Color) string {
-	cr := contrastRatio(fg.Luminance(), bg.Luminance())
+	cr := fg.ContrastRatio(bg)
 	if cr < unreportedContrastRatioThreshold {
 		return "--"
 	}
@@ -137,15 +137,4 @@ func contrast(fg, bg *color.Color) string {
 		name = "AA"
 	}
 	return fmt.Sprintf("%0.02f %s", cr, name)
-}
-
-// https://medium.muz.li/the-science-of-color-contrast-an-expert-designers-guide-33e84c41d156
-func contrastRatio(l1, l2 float64) float64 {
-	lighter := l1
-	darker := l2
-	if l2 > l1 {
-		lighter = l2
-		darker = l1
-	}
-	return (lighter + 0.05) / (darker + 0.05)
 }

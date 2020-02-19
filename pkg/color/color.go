@@ -46,15 +46,15 @@ type Color struct {
 	blue  float64 // 0 - 1
 }
 
-func (c Color) String() string {
+func (c *Color) String() string {
 	return fmt.Sprintf("%s (%s)", c.name, c.Hex())
 }
 
-func (c Color) Name() string {
+func (c *Color) Name() string {
 	return c.name
 }
 
-func (c Color) Hex() string {
+func (c *Color) Hex() string {
 	r := strconv.FormatInt(int64(c.red*255), 16)
 	g := strconv.FormatInt(int64(c.green*255), 16)
 	b := strconv.FormatInt(int64(c.blue*255), 16)
@@ -62,7 +62,7 @@ func (c Color) Hex() string {
 }
 
 // https://www.w3.org/TR/WCAG20/#relativeluminancedef
-func (c Color) Luminance() float64 {
+func (c *Color) Luminance() float64 {
 	r := sRGB(c.red)
 	g := sRGB(c.green)
 	b := sRGB(c.blue)
@@ -70,6 +70,19 @@ func (c Color) Luminance() float64 {
 	l := 0.2126*r + 0.7152*g + 0.0722*b
 
 	return l
+}
+
+// https://medium.muz.li/the-science-of-color-contrast-an-expert-designers-guide-33e84c41d156
+func (c *Color) ContrastRatio(other *Color) float64 {
+	thisL := c.Luminance()
+	otherL := other.Luminance()
+	lighter := thisL
+	darker := otherL
+	if otherL > thisL {
+		lighter = otherL
+		darker = thisL
+	}
+	return (lighter + 0.05) / (darker + 0.05)
 }
 
 func hexToRGB(in string) (float64, error) {
