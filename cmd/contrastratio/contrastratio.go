@@ -3,11 +3,13 @@ package contrastratio
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spilliams/colors/pkg/color"
 )
@@ -32,12 +34,17 @@ func NewCmd() *cobra.Command {
 				return err
 			}
 
-			f, err := os.Create(flags.outFile)
-			defer f.Close()
-			if err != nil {
-				return err
+			var out io.Writer
+			out = os.Stdout
+			if len(flags.outFile) > 0 {
+				f, err := os.Create(flags.outFile)
+				defer f.Close()
+				if err != nil {
+					return err
+				}
+				out = f
 			}
-			w := bufio.NewWriter(f)
+			w := bufio.NewWriter(out)
 
 			csvTable := tablewriter.NewWriter(w)
 			csvTable.SetAutoWrapText(false)
@@ -56,13 +63,16 @@ func NewCmd() *cobra.Command {
 			}
 
 			w.Flush()
+			if len(flags.outFile) > 0 {
+				log.Infof("Output is in file %s", flags.outFile)
+			}
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&flags.inFile, "in", "", "The name of the file with all the colors in it")
 	_ = cmd.MarkFlagRequired("in")
-	cmd.Flags().StringVar(&flags.outFile, "out", "contrastRatios.csv", "The name of the file to use for output")
+	cmd.Flags().StringVar(&flags.outFile, "out", "", "The name of the file to use for output. If blank, this command will use stdout")
 
 	return cmd
 }
