@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spilliams/colors/pkg/color"
@@ -16,6 +15,8 @@ import (
 
 const (
 	unreportedContrastRatioThreshold = 3
+	outFileColumnSeparator           = ","
+	outFileRowSeparator              = "\n"
 )
 
 func NewCmd() *cobra.Command {
@@ -46,19 +47,7 @@ func NewCmd() *cobra.Command {
 			}
 			w := bufio.NewWriter(out)
 
-			csvTable := tablewriter.NewWriter(w)
-			csvTable.SetAutoWrapText(false)
-			csvTable.SetAutoFormatHeaders(false)
-			csvTable.SetBorder(false)
-			csvTable.SetHeaderLine(false)
-			csvTable.SetRowSeparator("+")
-			csvTable.SetColumnSeparator(",")
-			csvTable.SetCenterSeparator("^")
-			csvTable.SetTablePadding(" ")
-			csvTable.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-			csvTable.SetAlignment(tablewriter.ALIGN_LEFT)
-
-			if err := contrastSet(csvTable, colors); err != nil {
+			if err := contrastSet(w, colors); err != nil {
 				return err
 			}
 
@@ -102,7 +91,7 @@ func readInFile(in string) ([]*color.Color, error) {
 	return colors, nil
 }
 
-func contrastSet(table *tablewriter.Table, colors []*color.Color) error {
+func contrastSet(w io.Writer, colors []*color.Color) error {
 	white, err := color.NewFromHex("white", "ffffff")
 	if err != nil {
 		return err
@@ -118,7 +107,8 @@ func contrastSet(table *tablewriter.Table, colors []*color.Color) error {
 	colors = c
 
 	headers := []string{""}
-	for _, c := range colors {
+	rows := make([][]string, len(colors))
+	for i, c := range colors {
 		name := c.String()
 		headers = append(headers, name)
 
@@ -127,12 +117,25 @@ func contrastSet(table *tablewriter.Table, colors []*color.Color) error {
 			datum := contrast(c, vs)
 			data = append(data, datum)
 		}
-		table.Append(data)
+		rows[i] = data
 	}
-	table.SetHeader(headers)
-	table.Render() // Send output
+
+	if err := writeLine(w, headers); err != nil {
+		return err
+	}
+	for _, row := range rows {
+		if err := writeLine(w, row); err != nil {
+			return err
+		}
+	}
 
 	return nil
+}
+
+func writeLine(w io.Writer, parts []string) error {
+	line := fmt.Sprintf("%s%s", strings.Join(parts, outFileColumnSeparator), outFileRowSeparator)
+	_, err := w.Write([]byte(line))
+	return err
 }
 
 func contrast(fg, bg *color.Color) string {
