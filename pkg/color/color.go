@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-
-	log "github.com/sirupsen/logrus"
 )
 
-func NewFromRGB(name string, red, green, blue int) Color {
-	return Color{
+func NewFromRGB(name string, red, green, blue int) *Color {
+	return &Color{
 		name:  name,
 		red:   float64(red) / 255,
 		green: float64(green) / 255,
@@ -17,28 +15,28 @@ func NewFromRGB(name string, red, green, blue int) Color {
 	}
 }
 
-func NewFromHex(name, hex string) Color {
+func NewFromHex(name, hex string) (*Color, error) {
 	if len(hex) != 6 {
-		log.Fatal("hex for whole color must have 6 digits")
+		return nil, fmt.Errorf("hex for whole color must have 6 digits")
 	}
 	r, err := hexToRGB(hex[0:2])
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	g, err := hexToRGB(hex[2:4])
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	b, err := hexToRGB(hex[4:6])
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return Color{
+	return &Color{
 		name:  name,
 		red:   r,
 		green: g,
 		blue:  b,
-	}
+	}, nil
 }
 
 type Color struct {
@@ -71,7 +69,6 @@ func (c Color) Luminance() float64 {
 
 	l := 0.2126*r + 0.7152*g + 0.0722*b
 
-	log.Debugf("luminance of %s = %f", c, l)
 	return l
 }
 
