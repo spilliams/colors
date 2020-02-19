@@ -23,8 +23,10 @@ const (
 
 func NewCmd() *cobra.Command {
 	var flags struct {
-		inFile  string
-		outFile string
+		inFile             string
+		outFile            string
+		hideContrastLabels bool
+		precision          int
 	}
 	exampleInput := fmt.Sprintf("red%sff0000%sgreen%s00ff00%sblue%s0000ff", inFileColumnSeparator, inFileRowSeparator, inFileColumnSeparator, inFileRowSeparator, inFileColumnSeparator)
 
@@ -79,7 +81,7 @@ provide an --out flag it will attempt to write the output to file.`, exampleInpu
 			}
 			w := bufio.NewWriter(out)
 
-			if err := contrastSet(w, colors); err != nil {
+			if err := contrastSet(w, colors, flags.precision, flags.hideContrastLabels); err != nil {
 				return err
 			}
 
@@ -94,6 +96,8 @@ provide an --out flag it will attempt to write the output to file.`, exampleInpu
 	cmd.Flags().StringVar(&flags.inFile, "in", "", "The name of the file with all the colors in it (required)")
 	_ = cmd.MarkFlagRequired("in")
 	cmd.Flags().StringVar(&flags.outFile, "out", "", "The name of the file to use for output. If blank, this command will use stdout")
+	cmd.Flags().BoolVar(&flags.hideContrastLabels, "hide-contrast-labels", false, "Whether to hide the contrast labels (\"AA\")")
+	cmd.Flags().IntVar(&flags.precision, "precision", 2, "How many decimal places to report")
 
 	return cmd
 }
@@ -123,7 +127,7 @@ func readInFile(in string) ([]*color.Color, error) {
 	return colors, nil
 }
 
-func contrastSet(w io.Writer, colors []*color.Color) error {
+func contrastSet(w io.Writer, colors []*color.Color, precision int, hideContrastLabels bool) error {
 	white, err := color.NewFromHex("white", "ffffff")
 	if err != nil {
 		return err
@@ -146,7 +150,7 @@ func contrastSet(w io.Writer, colors []*color.Color) error {
 
 		data := []string{name}
 		for _, vs := range colors {
-			datum := contrast(c, vs)
+			datum := contrast(c, vs, precision, hideContrastLabels)
 			data = append(data, datum)
 		}
 		rows[i] = data
@@ -170,8 +174,14 @@ func writeLine(w io.Writer, parts []string) error {
 	return err
 }
 
-func contrast(fg, bg *color.Color) string {
+func contrast(fg, bg *color.Color, precision int, hideLabel bool) string {
 	cr := fg.ContrastRatio(bg)
+	formatter := fmt.Sprintf("%%0.0%df", precision)
+	crString := fmt.Sprintf(formatter, cr)
+	if hideLabel {
+		return crString
+	}
+
 	if cr < unreportedContrastRatioThreshold {
 		return "--"
 	}
@@ -181,5 +191,5 @@ func contrast(fg, bg *color.Color) string {
 	} else if cr < 7 {
 		name = "AA"
 	}
-	return fmt.Sprintf("%0.02f %s", cr, name)
+	return fmt.Sprintf("%s %s", crString, name)
 }
