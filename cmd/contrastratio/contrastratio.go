@@ -14,11 +14,10 @@ import (
 )
 
 const (
-	unreportedContrastRatioThreshold = 3
-	inFileColumnSeparator            = "\t"
-	inFileRowSeparator               = "\n"
-	outFileColumnSeparator           = ","
-	outFileRowSeparator              = "\n"
+	inFileColumnSeparator  = "\t"
+	inFileRowSeparator     = "\n"
+	outFileColumnSeparator = ","
+	outFileRowSeparator    = "\n"
 )
 
 func NewCmd() *cobra.Command {
@@ -182,14 +181,6 @@ func contrast(fg, bg *color.Color, precision int, hideLabel bool) string {
 		return crString
 	}
 
-	if cr < unreportedContrastRatioThreshold {
-		return "--"
-	}
-	name := "AAA"
-	if cr < 4.5 {
-		name = "AA+"
-	} else if cr < 7 {
-		name = "AA"
-	}
+	name := color.ContrastRatioDescription(cr)
 	return fmt.Sprintf("%s %s", crString, name)
 }

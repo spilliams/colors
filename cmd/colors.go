@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spilliams/colors/cmd/contrastratio"
+	"github.com/spilliams/colors/cmd/distance"
 )
 
 func main() {
@@ -18,6 +19,7 @@ func main() {
 	}
 
 	rootCmd.AddCommand(contrastratio.NewCmd())
+	rootCmd.AddCommand(distance.NewCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)

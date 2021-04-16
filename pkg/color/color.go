@@ -39,6 +39,7 @@ func NewFromHex(name, hex string) (*Color, error) {
 	}, nil
 }
 
+// Color represents a color with red, green and blue values, as well as a name.
 type Color struct {
 	name  string
 	red   float64 // 0 - 1
@@ -50,10 +51,13 @@ func (c *Color) String() string {
 	return fmt.Sprintf("%s (%s)", c.name, c.Hex())
 }
 
+// Name returns the receiver's name
 func (c *Color) Name() string {
 	return c.name
 }
 
+// Hex returns a hexadecimal representation of the receiver. For instance:
+// #00000 for black.
 func (c *Color) Hex() string {
 	r := strconv.FormatInt(int64(c.red*255), 16)
 	g := strconv.FormatInt(int64(c.green*255), 16)
@@ -61,6 +65,7 @@ func (c *Color) Hex() string {
 	return fmt.Sprintf("#%02s%02s%02s", r, g, b)
 }
 
+// Luminance returns the receiver's luminance as computed by the formula here:
 // https://www.w3.org/TR/WCAG20/#relativeluminancedef
 func (c *Color) Luminance() float64 {
 	r := sRGB(c.red)
@@ -72,6 +77,8 @@ func (c *Color) Luminance() float64 {
 	return l
 }
 
+// ContrastRatio returns the contrast ratio between the receiver and another
+// given color, as outlined by the process here:
 // https://medium.muz.li/the-science-of-color-contrast-an-expert-designers-guide-33e84c41d156
 func (c *Color) ContrastRatio(other *Color) float64 {
 	thisL := c.Luminance()
@@ -83,6 +90,15 @@ func (c *Color) ContrastRatio(other *Color) float64 {
 		darker = thisL
 	}
 	return (lighter + 0.05) / (darker + 0.05)
+}
+
+// DistanceTo returns the distance from the receiver to another given color
+// using a naive 3-d space.
+func (c *Color) DistanceTo(other *Color) float64 {
+	r := math.Abs(c.red - other.red)
+	g := math.Abs(c.green - other.green)
+	b := math.Abs(c.blue - other.blue)
+	return math.Sqrt(math.Pow(r, 2) + math.Pow(g, 2) + math.Pow(b, 2))
 }
 
 func hexToRGB(in string) (float64, error) {
@@ -102,4 +118,19 @@ func sRGB(in float64) float64 {
 		return math.Pow(((in + 0.055) / 1.055), 2.4)
 	}
 	return in / 12.92
+}
+
+const unreportedContrastRatioThreshold = 3
+
+func ContrastRatioDescription(contrastRatio float64) string {
+	if contrastRatio < unreportedContrastRatioThreshold {
+		return "--"
+	}
+	name := "AAA"
+	if contrastRatio < 4.5 {
+		name = "AA+"
+	} else if contrastRatio < 7 {
+		name = "AA"
+	}
+	return name
 }
